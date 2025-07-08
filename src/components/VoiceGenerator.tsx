@@ -158,11 +158,11 @@ const VoiceGenerator = () => {
   };
 
   return (
-    <div className="container mx-auto px-6 py-12 max-w-6xl">
-      <div className="grid lg:grid-cols-3 gap-8">
+    <div className="container mx-auto px-6 py-12 max-w-7xl">
+      <div className="grid lg:grid-cols-5 gap-8">
         
         {/* Main Generation Panel */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-3 space-y-6">
           <Card className="shadow-card border-border bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -293,7 +293,7 @@ const VoiceGenerator = () => {
         </div>
 
         {/* Recent Audio Section */}
-        <div className="space-y-6">
+        <div className="lg:col-span-2 space-y-6">
           <Card className="shadow-card border-border bg-card/50 backdrop-blur-sm">
             <CardHeader>
             <CardTitle className="flex items-center gap-2">
