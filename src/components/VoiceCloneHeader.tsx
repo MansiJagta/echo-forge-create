@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { Mic, Sparkles, Users, Globe } from "lucide-react";
 
 const VoiceCloneHeader = () => {
@@ -20,6 +21,9 @@ const VoiceCloneHeader = () => {
           
           <div className="flex items-center gap-6">
             <Button variant="ghost" className="text-foreground">Features</Button>
+            <Button variant="ghost" asChild>
+              <Link to="/advanced" className="text-foreground">Advanced Generator</Link>
+            </Button>
             <Button variant="ghost" className="text-foreground">Pricing</Button>
             <Button variant="outline" className="text-foreground border-border">Sign In</Button>
             <Button variant="hero">Get Started Free</Button>
