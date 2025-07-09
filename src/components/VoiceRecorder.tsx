@@ -24,6 +24,9 @@ const VoiceRecorder = ({ onRecordingComplete }: VoiceRecorderProps) => {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [volume, setVolume] = useState(0);
+  const [audioSource, setAudioSource] = useState<'recording' | 'upload' | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -79,6 +82,7 @@ const VoiceRecorder = ({ onRecordingComplete }: VoiceRecorderProps) => {
       mediaRecorder.onstop = () => {
         const blob = new Blob(audioChunks, { type: 'audio/webm' });
         setAudioBlob(blob);
+        setAudioSource('recording');
         
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
@@ -175,6 +179,43 @@ const VoiceRecorder = ({ onRecordingComplete }: VoiceRecorderProps) => {
     }
   };
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('audio/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an audio file",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Set audio data
+      setAudioBlob(file);
+      setAudioSource('upload');
+      
+      const url = URL.createObjectURL(file);
+      setAudioUrl(url);
+      
+      // Calculate duration (approximate based on file size)
+      const estimatedDuration = Math.round(file.size / 16000); // rough estimate
+      setRecordingTime(estimatedDuration);
+      
+      onRecordingComplete?.(file);
+
+      toast({
+        title: "File uploaded",
+        description: `Audio file "${file.name}" ready for voice cloning`,
+      });
+    }
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
   const deleteRecording = () => {
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
@@ -184,15 +225,20 @@ const VoiceRecorder = ({ onRecordingComplete }: VoiceRecorderProps) => {
     setAudioUrl(null);
     setRecordingTime(0);
     setIsPlaying(false);
+    setAudioSource(null);
     
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
     }
 
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
     toast({
-      title: "Recording deleted",
-      description: "Voice recording has been removed",
+      title: "Audio deleted",
+      description: "Audio file has been removed",
     });
   };
 
@@ -214,12 +260,18 @@ const VoiceRecorder = ({ onRecordingComplete }: VoiceRecorderProps) => {
           </div>
 
           {/* Recording Controls */}
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-3 flex-wrap">
             {!isRecording && !audioBlob && (
-              <Button onClick={startRecording} variant="hero" size="lg">
-                <Mic className="w-5 h-5 mr-2" />
-                Start Recording
-              </Button>
+              <>
+                <Button onClick={startRecording} variant="hero" size="lg">
+                  <Mic className="w-5 h-5 mr-2" />
+                  Start Recording
+                </Button>
+                <Button onClick={triggerFileUpload} variant="outline" size="lg">
+                  <Upload className="w-5 h-5 mr-2" />
+                  Choose File
+                </Button>
+              </>
             )}
 
             {isRecording && (
@@ -300,6 +352,14 @@ const VoiceRecorder = ({ onRecordingComplete }: VoiceRecorderProps) => {
               </div>
             </div>
           )}
+          {/* Hidden File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="audio/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
         </div>
       </CardContent>
     </Card>
