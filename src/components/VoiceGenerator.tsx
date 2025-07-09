@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import VoiceRecorder from "./VoiceRecorder";
 import { 
   Mic, 
   Play, 
@@ -256,17 +257,13 @@ const VoiceGenerator = () => {
                 </div>
               </div>
 
-              {/* Upload Voice Sample */}
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center bg-muted/20">
-                <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                <div className="text-sm text-muted-foreground mb-2">
-                  Upload your voice sample (optional)
-                </div>
-                <Button variant="outline" size="sm">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Choose File
-                </Button>
-              </div>
+              {/* Voice Recording */}
+              <VoiceRecorder onRecordingComplete={(blob) => {
+                toast({
+                  title: "Voice recorded",
+                  description: "Voice sample ready for cloning",
+                });
+              }} />
 
               {/* Generate Button */}
               <Button 
