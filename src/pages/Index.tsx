@@ -1,17 +1,7 @@
-import VoiceCloneHeader from "@/components/VoiceCloneHeader";
-import VoiceGenerator from "@/components/VoiceGenerator";
-import FeaturesSection from "@/components/FeaturesSection";
-import HowItWorksSection from "@/components/HowItWorksSection";
+import { Navigate } from "react-router-dom";
 
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-background">
-      <VoiceCloneHeader />
-      <VoiceGenerator />
-      <FeaturesSection />
-      <HowItWorksSection />
-    </div>
-  );
+  return <Navigate to="/landing" replace />;
 };
 
 export default Index;
