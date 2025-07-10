@@ -41,6 +41,9 @@ app.get('/', (req, res) => {
 const todosRoutes = require('./routes/todos');
 app.use('/api/todos', todosRoutes);
 
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
