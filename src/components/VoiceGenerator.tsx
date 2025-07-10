@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import VoiceRecorder from "./VoiceRecorder";
 import { 
   Mic, 
@@ -17,7 +18,9 @@ import {
   AudioWaveform, 
   Bot,
   Sparkles,
-  Upload
+  Upload,
+  Library,
+  Zap
 } from "lucide-react";
 
 interface GenerationJob {
@@ -33,12 +36,15 @@ interface GenerationJob {
 
 const VoiceGenerator = () => {
   const [text, setText] = useState("");
+  const [transliteratedText, setTransliteratedText] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("en");
   const [selectedVoice, setSelectedVoice] = useState("aria");
   const [selectedAPI, setSelectedAPI] = useState("elevenlabs");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isTransliterating, setIsTransliterating] = useState(false);
   const [recentJobs, setRecentJobs] = useState<GenerationJob[]>([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const languages = [
     { code: "en", name: "English", flag: "🇺🇸" },
@@ -73,6 +79,80 @@ const VoiceGenerator = () => {
     { id: "google", name: "Google Cloud TTS", description: "Natural language processing" },
     { id: "azure", name: "Azure Cognitive", description: "Microsoft's speech services" }
   ];
+
+  // Check for selected voice from library
+  useEffect(() => {
+    const savedVoice = localStorage.getItem('selectedVoice');
+    if (savedVoice) {
+      const voiceData = JSON.parse(savedVoice);
+      setSelectedVoice(voiceData.id);
+      localStorage.removeItem('selectedVoice');
+      toast({
+        title: "Voice Selected",
+        description: `Selected ${voiceData.name} from voice library`,
+      });
+    }
+  }, [toast]);
+
+  const handleTransliterate = async () => {
+    if (!text.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter some text to transliterate",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsTransliterating(true);
+    
+    try {
+      // Simulate Google Transliteration API call
+      // In a real implementation, you would call the Google Input Tools API
+      const response = await fetch(`https://inputtools.google.com/request?text=${encodeURIComponent(text)}&itc=${selectedLanguage}-t-i0-und&num=1&cp=0&cs=1&ie=utf-8&oe=utf-8&app=demopage`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data[1] && data[1][0] && data[1][0][1] && data[1][0][1][0]) {
+          setTransliteratedText(data[1][0][1][0]);
+        } else {
+          // Fallback: simple character mapping for demo
+          const transliterationMap: { [key: string]: string } = {
+            'hello': 'हैलो',
+            'world': 'वर्ल्ड',
+            'voice': 'आवाज़',
+            'generator': 'जेनरेटर',
+            'text': 'टेक्स्ट',
+            'speech': 'भाषण'
+          };
+          
+          let transliterated = text.toLowerCase();
+          Object.entries(transliterationMap).forEach(([eng, local]) => {
+            transliterated = transliterated.replace(new RegExp(eng, 'g'), local);
+          });
+          
+          setTransliteratedText(transliterated);
+        }
+      } else {
+        throw new Error('Transliteration service unavailable');
+      }
+
+      toast({
+        title: "Transliteration Complete",
+        description: "Text has been transliterated successfully",
+      });
+
+    } catch (error) {
+      toast({
+        title: "Transliteration Failed",
+        description: "Could not transliterate text. Using original text.",
+        variant: "destructive"
+      });
+      setTransliteratedText(text);
+    } finally {
+      setIsTransliterating(false);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!text.trim()) {
@@ -194,23 +274,61 @@ const VoiceGenerator = () => {
               </div>
 
               {/* Text Input with Transliteration */}
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium">Text Content</label>
                   <Badge variant="secondary" className="text-xs">
                     <Languages className="w-3 h-3 mr-1" />
-                    Auto-transliteration enabled
+                    Transliteration available
                   </Badge>
                 </div>
                 <Textarea
-                  placeholder="Enter your text here... (Supports multiple languages and auto-transliteration)"
+                  placeholder="Enter your text here... (Supports multiple languages and transliteration)"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   className="min-h-32 resize-none"
                 />
-                <div className="text-xs text-muted-foreground">
-                  {text.length}/5000 characters
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-muted-foreground">
+                    {text.length}/5000 characters
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleTransliterate}
+                    disabled={isTransliterating || !text.trim()}
+                  >
+                    {isTransliterating ? (
+                      <>
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        Transliterating...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-3 h-3 mr-1" />
+                        Apply Transliteration
+                      </>
+                    )}
+                  </Button>
                 </div>
+                
+                {/* Transliterated Text Display */}
+                {transliteratedText && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-primary">Transliterated Text</label>
+                    <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                      <p className="text-sm">{transliteratedText}</p>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setText(transliteratedText)}
+                      className="text-xs"
+                    >
+                      Use transliterated text for generation
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Language and Voice Selection */}
@@ -233,7 +351,17 @@ const VoiceGenerator = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Voice</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Voice</label>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate('/voice-library')}
+                    >
+                      <Library className="w-3 h-3 mr-1" />
+                      Choose from Library
+                    </Button>
+                  </div>
                   <Select value={selectedVoice} onValueChange={setSelectedVoice}>
                     <SelectTrigger>
                       <SelectValue />

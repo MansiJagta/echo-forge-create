@@ -59,8 +59,8 @@ const VoiceCloneHeader = () => {
                 Start Voice Cloning
               </Link>
             </Button>
-            <Button variant="glass" size="lg" className="text-lg px-8 py-6">
-              Watch Demo
+            <Button variant="glass" size="lg" asChild className="text-lg px-8 py-6">
+              <Link to="/info">Get Info</Link>
             </Button>
           </div>
           
