@@ -38,6 +38,9 @@ app.get('/', (req, res) => {
 // const apiRoutes = require('./routes/api');
 // app.use('/api', apiRoutes);
 
+const todosRoutes = require('./routes/todos');
+app.use('/api/todos', todosRoutes);
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
