@@ -26,7 +26,7 @@ const VoiceRecorder = ({ onRecordingComplete }: VoiceRecorderProps) => {
   const [volume, setVolume] = useState(0);
   const [audioSource, setAudioSource] = useState<'recording' | 'upload' | null>(null);
 
-  const MAX_RECORDING_TIME = 20; // 20 seconds limit
+  const MAX_RECORDING_TIME = 15; // 15 seconds limit
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -100,7 +100,7 @@ const VoiceRecorder = ({ onRecordingComplete }: VoiceRecorderProps) => {
       setIsRecording(true);
       setRecordingTime(0);
 
-      // Start timer with 20-second limit
+      // Start timer with 15-second limit
       intervalRef.current = setInterval(() => {
         setRecordingTime(prev => {
           const newTime = prev + 1;
@@ -263,7 +263,7 @@ const VoiceRecorder = ({ onRecordingComplete }: VoiceRecorderProps) => {
           <div className="text-center">
             <h3 className="text-lg font-semibold mb-2">Voice Recording</h3>
             <p className="text-sm text-muted-foreground">
-              Record your voice sample for cloning (max 20 seconds)
+              Record your voice sample for cloning (max 15 seconds)
             </p>
           </div>
 

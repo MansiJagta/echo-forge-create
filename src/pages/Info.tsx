@@ -25,12 +25,6 @@ const Info = () => {
                   Back to Home
                 </Link>
               </Button>
-              <Button variant="hero" asChild>
-                <Link to="/generator" className="flex items-center gap-2">
-                  Start Generating
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </Button>
             </div>
           </div>
         </div>
