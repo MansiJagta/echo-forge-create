@@ -1,73 +1,130 @@
-# Welcome to your Lovable project
+# VoiceForge - AI Voice Cloning & Audio Transcription Platform
 
-## Project info
+A comprehensive AI-powered platform for voice cloning and audio transcription with advanced features and multi-language support.
 
-**URL**: https://lovable.dev/projects/b58ff195-e5bd-40f8-a7b5-abe60979d55d
+## Features
 
-## How can I edit this code?
+### Voice Cloning
+- **5-Second Voice Clone**: Create voice clones from just 5 seconds of audio
+- **Multi-Language Support**: Support for 15+ languages
+- **Team Collaboration**: Work together on voice projects
+- **Advanced API**: Integrate with famous voice APIs
 
-There are several ways of editing your application.
+### Audio Transcription
+- **File Upload**: Support for MP3, WAV, M4A, and other audio formats
+- **Real-time Processing**: Instant transcription using OpenAI Whisper
+- **Download Results**: Download transcription as text files
+- **Recent History**: View and manage your transcription history
+- **File Size Limit**: Up to 25MB per file
 
-**Use Lovable**
+## Getting Started
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b58ff195-e5bd-40f8-a7b5-abe60979d55d) and start prompting.
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn
+- OpenAI API key (for transcription feature)
 
-Changes made via Lovable will be committed automatically to this repo.
+### Installation
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd voiceforge
 ```
 
-**Edit a file directly in GitHub**
+2. Install dependencies:
+```bash
+npm install
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+3. Set up environment variables:
+Create a `.env` file in the root directory:
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+```
 
-**Use GitHub Codespaces**
+4. Start the development server:
+```bash
+# Start the frontend (Vite)
+npm run dev
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Start the backend server (in a separate terminal)
+node server.js
+```
 
-## What technologies are used for this project?
+The application will be available at:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3001
+- API Documentation: http://localhost:3001/api-docs
 
-This project is built with:
+## Usage
 
-- Vite
+### Voice Cloning
+1. Navigate to `/generator`
+2. Upload or record your voice sample
+3. Enter the text you want to convert to speech
+4. Generate your voice clone
+
+### Audio Transcription
+1. Navigate to `/audio-transcription`
+2. Upload an audio file (MP3, WAV, M4A, etc.)
+3. Wait for the transcription to complete
+4. Download the text result
+5. View your transcription history
+
+## API Endpoints
+
+### Transcription API
+- `POST /api/transcribe` - Upload and transcribe audio file
+- `GET /api/transcribe/history` - Get transcription history
+
+### Voice Generation API
+- `POST /api/generate` - Generate voice from text
+- `GET /api/voices` - Get available voices
+
+## Project Structure
+
+```
+├── src/
+│   ├── components/          # React components
+│   ├── pages/              # Page components
+│   │   └── AudioTranscription.tsx  # Audio transcription page
+│   ├── lib/                # Utility functions
+│   └── App.tsx            # Main app component
+├── routes/                 # Backend API routes
+│   └── transcription.js    # Transcription API endpoints
+├── server.js              # Express server
+└── package.json           # Dependencies
+```
+
+## Technologies Used
+
+### Frontend
+- React 18
 - TypeScript
-- React
-- shadcn-ui
+- Vite
 - Tailwind CSS
+- Shadcn/ui components
+- React Router DOM
 
-## How can I deploy this project?
+### Backend
+- Node.js
+- Express.js
+- OpenAI API (Whisper)
+- Multer (file uploads)
+- Swagger (API documentation)
 
-Simply open [Lovable](https://lovable.dev/projects/b58ff195-e5bd-40f8-a7b5-abe60979d55d) and click on Share -> Publish.
+## Contributing
 
-## Can I connect a custom domain to my Lovable project?
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-Yes, you can!
+## License
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+This project is licensed under the MIT License.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Support
+
+For support and questions, please open an issue on GitHub.

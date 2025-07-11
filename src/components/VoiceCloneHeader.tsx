@@ -24,6 +24,9 @@ const VoiceCloneHeader = () => {
               <Link to="/info#features" className="text-foreground">Features</Link>
             </Button>
             <Button variant="ghost" asChild>
+              <Link to="/audio-transcription" className="text-foreground">Transcription</Link>
+            </Button>
+            <Button variant="ghost" asChild>
               <Link to="/info#pricing" className="text-foreground">Pricing</Link>
             </Button>
             <Button variant="outline" asChild>

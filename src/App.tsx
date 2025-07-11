@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Pricing from "./pages/Pricing";
 import VoiceLibrary from "./pages/VoiceLibrary";
+import AudioTranscription from "./pages/AudioTranscription";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/voice-library" element={<VoiceLibrary />} />
+          <Route path="/audio-transcription" element={<AudioTranscription />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
