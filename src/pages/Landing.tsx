@@ -1,7 +1,7 @@
 import VoiceCloneHeader from "@/components/VoiceCloneHeader";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowRight, Mic, Sparkles } from "lucide-react";
+import { ArrowRight, Mic, Sparkles, FileAudio } from "lucide-react";
 
 const Landing = () => {
   return (
@@ -38,6 +38,12 @@ const Landing = () => {
               </Link>
             </Button>
             <Button asChild variant="glass" size="lg" className="text-lg px-8 py-6">
+              <Link to="/audio-transcription">
+                <FileAudio className="w-5 h-5 mr-2" />
+                Audio Transcription
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
               <Link to="/info">
                 Learn More
               </Link>

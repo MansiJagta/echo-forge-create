@@ -44,6 +44,9 @@ app.use('/api/todos', todosRoutes);
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
+const transcriptionRoutes = require('./routes/transcription');
+app.use('/api/transcribe', transcriptionRoutes);
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
