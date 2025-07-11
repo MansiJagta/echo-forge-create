@@ -1,16 +1,20 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends, Header
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import os
 import tempfile
 import shutil
 import uuid
 from pathlib import Path
 import requests
-from typing import Optional
+from typing import Optional, List
 import json
 import logging
 from pydantic import BaseModel
+from datetime import datetime, timedelta
+import jwt
+from supabase import create_client, Client
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Voice Clone API",
-    description="API for voice cloning and speech synthesis",
+    description="API for voice cloning and speech synthesis with Supabase integration",
     version="1.0.0"
 )
 
@@ -34,6 +38,9 @@ app.add_middleware(
 # Configuration
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "your-elevenlabs-api-key")
 ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1"
+SUPABASE_URL = os.getenv("SUPABASE_URL", "your-supabase-url")
+SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY", "your-supabase-anon-key")
+JWT_SECRET = os.getenv("JWT_SECRET", "your-jwt-secret-key")
 UPLOAD_DIR = "uploads/voice_samples"
 OUTPUT_DIR = "outputs/generated_speech"
 MAX_FILE_SIZE = 15 * 1024 * 1024  # 15MB
@@ -42,6 +49,22 @@ ALLOWED_AUDIO_TYPES = ["audio/wav", "audio/mp3", "audio/webm", "audio/mpeg"]
 # Create directories if they don't exist
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Initialize Supabase client
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# Security
+security = HTTPBearer()
+
+# Pydantic models
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    name: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
 
 class VoiceCloneRequest(BaseModel):
     text: str
@@ -53,6 +76,41 @@ class VoiceCloneResponse(BaseModel):
     audio_url: Optional[str] = None
     voice_id: Optional[str] = None
     error: Optional[str] = None
+    audio_id: Optional[str] = None
+
+class AudioHistoryItem(BaseModel):
+    id: str
+    user_id: str
+    filename: str
+    text: str
+    voice_id: str
+    audio_url: str
+    created_at: datetime
+    duration: Optional[float] = None
+
+# Authentication functions
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current user from JWT token"""
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return user_id
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+def create_jwt_token(user_id: str) -> str:
+    """Create JWT token for user"""
+    payload = {
+        "sub": user_id,
+        "exp": datetime.utcnow() + timedelta(days=7),
+        "iat": datetime.utcnow()
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 def validate_audio_file(file: UploadFile) -> bool:
     """Validate the uploaded audio file"""
@@ -152,13 +210,133 @@ def generate_speech_with_elevenlabs(text: str, voice_id: str) -> str:
         logger.error(f"Error generating speech: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating speech: {str(e)}")
 
+def save_audio_to_supabase(user_id: str, filename: str, text: str, voice_id: str, audio_url: str, duration: Optional[float] = None) -> str:
+    """Save audio record to Supabase"""
+    try:
+        audio_data = {
+            "user_id": user_id,
+            "filename": filename,
+            "text": text,
+            "voice_id": voice_id,
+            "audio_url": audio_url,
+            "duration": duration,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        result = supabase.table("audio_history").insert(audio_data).execute()
+        
+        if result.data:
+            audio_id = result.data[0]["id"]
+            logger.info(f"Audio saved to Supabase with ID: {audio_id}")
+            return audio_id
+        else:
+            raise Exception("Failed to save audio to Supabase")
+            
+    except Exception as e:
+        logger.error(f"Error saving audio to Supabase: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error saving audio: {str(e)}")
+
+# Authentication endpoints
+@app.post("/auth/register")
+async def register(user_data: UserCreate):
+    """Register a new user"""
+    try:
+        # Create user in Supabase Auth
+        auth_response = supabase.auth.sign_up({
+            "email": user_data.email,
+            "password": user_data.password
+        })
+        
+        if auth_response.user:
+            user_id = auth_response.user.id
+            
+            # Store additional user data
+            profile_data = {
+                "id": user_id,
+                "email": user_data.email,
+                "name": user_data.name or user_data.email.split('@')[0],
+                "created_at": datetime.utcnow().isoformat()
+            }
+            
+            supabase.table("user_profiles").insert(profile_data).execute()
+            
+            # Create JWT token
+            token = create_jwt_token(user_id)
+            
+            return {
+                "message": "User registered successfully",
+                "token": token,
+                "user_id": user_id,
+                "email": user_data.email
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Registration failed")
+            
+    except Exception as e:
+        logger.error(f"Registration error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Registration failed: {str(e)}")
+
+@app.post("/auth/login")
+async def login(user_data: UserLogin):
+    """Login user"""
+    try:
+        # Authenticate with Supabase
+        auth_response = supabase.auth.sign_in_with_password({
+            "email": user_data.email,
+            "password": user_data.password
+        })
+        
+        if auth_response.user:
+            user_id = auth_response.user.id
+            
+            # Create JWT token
+            token = create_jwt_token(user_id)
+            
+            return {
+                "message": "Login successful",
+                "token": token,
+                "user_id": user_id,
+                "email": user_data.email
+            }
+        else:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+            
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@app.get("/auth/me")
+async def get_current_user_info(current_user: str = Depends(get_current_user)):
+    """Get current user information"""
+    try:
+        # Get user profile from Supabase
+        result = supabase.table("user_profiles").select("*").eq("id", current_user).execute()
+        
+        if result.data:
+            user_profile = result.data[0]
+            return {
+                "user_id": user_profile["id"],
+                "email": user_profile["email"],
+                "name": user_profile["name"],
+                "created_at": user_profile["created_at"]
+            }
+        else:
+            raise HTTPException(status_code=404, detail="User profile not found")
+            
+    except Exception as e:
+        logger.error(f"Error getting user info: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error retrieving user information")
+
+# Voice cloning endpoint with authentication
 @app.post("/clone-voice", response_model=VoiceCloneResponse)
 async def clone_voice(
     text: str = Form(..., description="Text to convert to speech"),
-    voice_sample: UploadFile = File(..., description="Voice sample audio file (max 15 seconds)")
+    voice_sample: UploadFile = File(..., description="Voice sample audio file (max 15 seconds)"),
+    current_user: str = Depends(get_current_user)
 ):
     """
     Clone a voice and generate speech from text.
+    Requires authentication.
     
     - **text**: The text you want to convert to speech
     - **voice_sample**: Audio file containing the voice sample (WAV, MP3, or WebM format)
@@ -168,6 +346,7 @@ async def clone_voice(
     - **status**: "success" or "error"
     - **audio_url**: URL to download the generated audio file
     - **voice_id**: The ID of the created voice clone
+    - **audio_id**: The ID of the saved audio record
     """
     
     try:
@@ -199,6 +378,16 @@ async def clone_voice(
         audio_filename = os.path.basename(output_path)
         audio_url = f"/download/{audio_filename}"
         
+        # Save to Supabase
+        audio_id = save_audio_to_supabase(
+            user_id=current_user,
+            filename=voice_sample.filename,
+            text=text,
+            voice_id=voice_id,
+            audio_url=audio_url,
+            duration=None  # Could be calculated from audio file
+        )
+        
         # Clean up uploaded file
         try:
             os.remove(voice_sample_path)
@@ -210,7 +399,8 @@ async def clone_voice(
             message="Voice cloned and speech generated successfully",
             status="success",
             audio_url=audio_url,
-            voice_id=voice_id
+            voice_id=voice_id,
+            audio_id=audio_id
         )
         
     except HTTPException:
@@ -232,6 +422,62 @@ async def download_audio(filename: str):
         filename=filename,
         media_type="audio/mpeg"
     )
+
+@app.get("/audio/history", response_model=List[AudioHistoryItem])
+async def get_audio_history(
+    limit: int = 20,
+    offset: int = 0,
+    current_user: str = Depends(get_current_user)
+):
+    """Get user's audio history"""
+    try:
+        result = supabase.table("audio_history")\
+            .select("*")\
+            .eq("user_id", current_user)\
+            .order("created_at", desc=True)\
+            .range(offset, offset + limit - 1)\
+            .execute()
+        
+        if result.data:
+            return result.data
+        else:
+            return []
+            
+    except Exception as e:
+        logger.error(f"Error getting audio history: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error retrieving audio history")
+
+@app.delete("/audio/{audio_id}")
+async def delete_audio(
+    audio_id: str,
+    current_user: str = Depends(get_current_user)
+):
+    """Delete an audio record"""
+    try:
+        # Check if audio belongs to user
+        result = supabase.table("audio_history")\
+            .select("*")\
+            .eq("id", audio_id)\
+            .eq("user_id", current_user)\
+            .execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Audio not found or access denied")
+        
+        # Delete from Supabase
+        supabase.table("audio_history")\
+            .delete()\
+            .eq("id", audio_id)\
+            .eq("user_id", current_user)\
+            .execute()
+        
+        return {"message": "Audio deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting audio: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error deleting audio")
 
 @app.get("/voices")
 async def list_voices():
@@ -275,7 +521,7 @@ async def delete_voice(voice_id: str):
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "message": "Voice Clone API is running"}
+    return {"status": "healthy", "message": "Voice Clone API with Supabase is running"}
 
 if __name__ == "__main__":
     import uvicorn
